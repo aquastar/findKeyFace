@@ -298,7 +298,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
             Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, nose_y + nose_height / 2 , output.cols, face_bottom - nose_y - nose_height / 2);
+            Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
             Mat down_image = output(down_rect);
 
             Mat combine;
@@ -335,42 +335,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
             cout << "Nothing to do" << endl;
             break;
     }
-    //
-    //
-    //        Mat src;
-    //        src = img;
-    //        string str = "~/";
-    //        imwrite(str + "ori.jpg", src);
-    //        imshow("src", src);
-    //
-    //        Rect up_rect(0, 90, src.cols, 50);
-    //        Mat up_image = src(up_rect);
-    //        imwrite(str + "corp_up.jpg", up_image);
-    //        imshow("image", up_image);
-    //
-    //        Rect down_rect(0, 180, src.cols, 50);
-    //        Mat down_image = src(down_rect);
-    //        imwrite(str + "corp_down.jpg", down_image);
-    //        imshow("image", down_image);
-    //
-    //        Mat combine;
-    //        vconcat(up_image, down_image, combine);
-    //        namedWindow("combine", CV_WINDOW_AUTOSIZE);
-    //        imshow("combine", combine);
-    //        imwrite(str + "cc.jpg", combine);
-    //
-    //
-    //        int limit_x = 128; //int face_x=128;
-    //        for (int row = 0; row < combine.rows; ++row) {
-    //            for (int col = 0; col < combine.cols + limit_x; col++) {
-    //                combine.at<uchar>(row, col + face_x + combine.cols) = (combine.at<uchar>(row, col + face_x + combine.cols) + combine.at<uchar>(row, face_x + combine.cols - col)) / 2;
-    //            }
-    //        }
-    //
-    //        Rect final_rect(face_x, 0, combine.cols - face_x, combine.rows);
-    //        Mat final = combine(final_rect);
-    //        string path_half = "/home/danny/Documents/test_half/";
-    //        imwrite(path_half + imgname, final);
+
     line(img, Point(0, face_top), Point(img.cols, face_top), colors[1]);
     line(img, Point(0, eye_y), Point(img.cols, eye_y), colors[2]);
     line(img, Point(0, nose_y), Point(img.cols, nose_y), colors[3]);
