@@ -13,7 +13,6 @@
                    displayName="Source Files"
                    projectFiles="true">
       <itemPath>findkeyface.cc</itemPath>
-      <itemPath>/home/danny/Dropbox/CV_Video_Face/02 - Detecting Faces/lena.jpg</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -46,11 +45,6 @@
           </linkerLibItems>
         </linkerTool>
       </compileType>
-      <item path="/home/danny/Dropbox/CV_Video_Face/02 - Detecting Faces/lena.jpg"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="findkeyface.cc" ex="false" tool="1" flavor2="0">
       </item>
     </conf>
@@ -74,11 +68,6 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
-      <item path="/home/danny/Dropbox/CV_Video_Face/02 - Detecting Faces/lena.jpg"
-            ex="false"
-            tool="3"
-            flavor2="0">
-      </item>
       <item path="findkeyface.cc" ex="false" tool="1" flavor2="0">
       </item>
     </conf>

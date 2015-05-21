@@ -268,7 +268,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2);
+            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
             Mat up_image = output(up_rect);
 
             Rect down_rect(0, eye_y + eye_height / 2, output.cols, face_bottom - eye_y - eye_height / 2);
@@ -295,10 +295,10 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_NOSE_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, face_center - face_top);
+            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, face_bottom - 20, output.cols, 20);
+            Rect down_rect(0, nose_y + nose_height / 2 , output.cols, face_bottom - nose_y - nose_height / 2);
             Mat down_image = output(down_rect);
 
             Mat combine;
