@@ -11,8 +11,8 @@ using namespace std;
 using namespace cv;
 
 // output base directory and input image folder
-const string doc_dir = "/home/danny/Documents/";
-char* path = "/home/danny/Documents/jaffe/";
+const string to_write_dir = "/home/danny/Documents/";
+char* input_img_dir = "/home/danny/Documents/jaffe/";
 
 //cascade file by OpenCV
 String cascadeName = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; //face
@@ -72,14 +72,14 @@ int main(int argc, const char** argv) {
 
     DIR *dir, *dird;
     struct dirent *ent, *cutd;
-    if ((dir = opendir(path)) != NULL) {
+    if ((dir = opendir(input_img_dir)) != NULL) {
 
         // Get all size info from whole set
         clock_t begin1 = clock();
         while ((ent = readdir(dir)) != NULL) {
             if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..") && strstr(ent->d_name, "tiff")) {
                 //                printf("Calculating image: %s\n", ent->d_name);
-                detectAndDraw(path, ent->d_name, cascade, eyeCas, noseCas, mouthCas, scale);
+                detectAndDraw(input_img_dir, ent->d_name, cascade, eyeCas, noseCas, mouthCas, scale);
             }
         }
         clock_t end1 = clock();
@@ -100,12 +100,12 @@ int main(int argc, const char** argv) {
         // FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
         cutpos cp = RM_NOSE_EYES;
         string towrite = cleandir(cutpos_str[cp]);
-        if ((dird = opendir(path)) != NULL) {
+        if ((dird = opendir(input_img_dir)) != NULL) {
             // Cut by computed boundary
             while ((cutd = readdir(dird)) != NULL) {
                 if (strcmp(cutd->d_name, ".") && strcmp(cutd->d_name, "..") && strstr(cutd->d_name, "tiff")) {
                     printf("Cutting image: %s\n", cutd->d_name);
-                    cut(path, cutd->d_name, cp, towrite);
+                    cut(input_img_dir, cutd->d_name, cp, towrite);
                 }
             }
 
@@ -120,14 +120,14 @@ int main(int argc, const char** argv) {
 }
 
 string cleandir(string path) {
-    int ret = system(("test -d " + doc_dir + path).c_str());
+    int ret = system(("test -d " + to_write_dir + path).c_str());
     if (ret) {
-        system(("mkdir " + doc_dir + path).c_str());
+        system(("mkdir " + to_write_dir + path).c_str());
     } else {
-        system(("rm -rf " + doc_dir + path).c_str());
-        system(("mkdir " + doc_dir + path).c_str());
+        system(("rm -rf " + to_write_dir + path).c_str());
+        system(("mkdir " + to_write_dir + path).c_str());
     }
-    return (doc_dir + path + "/").c_str();
+    return (to_write_dir + path + "/").c_str();
 }
 
 void detectAndDraw(string path, string imgname, CascadeClassifier& cascade, CascadeClassifier& eyeCas, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
