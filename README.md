@@ -1,4 +1,4 @@
-# Find Key Face
+# Find Key Part of Face
 
 usage:
 
