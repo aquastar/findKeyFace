@@ -10,13 +10,15 @@
 using namespace std;
 using namespace cv;
 
-enum cutpos {
-    FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
-};
-
-string cutpos_str[] = {"face", "rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
-
+// output base directory and input image folder
 const string doc_dir = "/home/danny/Documents/";
+char* path = "/home/danny/Documents/jaffe/";
+
+//cascade file by OpenCV
+String cascadeName = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; //face
+String eyeCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_eye.xml"; //eyes
+String noseCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_mcs_nose.xml"; //nose
+String mouthCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_mcs_mouth.xml"; //mouth
 
 // Color set to use
 const static Scalar colors[] = {
@@ -30,11 +32,12 @@ const static Scalar colors[] = {
     CV_RGB(255, 0, 255)
 };
 
+enum cutpos {
+    FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
+};
 
-String cascadeName = "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_alt.xml"; //face
-String eyeCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_eye.xml"; //eyes
-String noseCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_mcs_nose.xml"; //nose
-String mouthCasName = "/usr/local/share/OpenCV/haarcascades/haarcascade_mcs_mouth.xml"; //mouth
+string cutpos_str[] = {"face", "rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
+
 
 void detectAndDraw(string path, string img,
         CascadeClassifier& cascade, CascadeClassifier& nestedCascade, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
@@ -69,7 +72,6 @@ int main(int argc, const char** argv) {
 
     DIR *dir, *dird;
     struct dirent *ent, *cutd;
-    char* path = "/home/danny/Documents/jaffe/";
     if ((dir = opendir(path)) != NULL) {
 
         // Get all size info from whole set
