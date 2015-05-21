@@ -33,24 +33,30 @@ const static Scalar colors[] = {
 };
 
 // Cutting style
+
 enum cutpos {
-    FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
+    FACE_BG, FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
 };
-string cutpos_str[] = {"face", "rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
+string cutpos_str[] = {"face_bg", "face", "rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
 
-// cutting control
-cutpos cp = RM_NOSE_EYES;
+// cutting parameters control
+cutpos cp = RM_NOSE;
+bool isHalf = true;
+bool traverseAll = false;
 
-void detectAndDraw(string path, string img,
+void detectAndStat(string path, string img,
         CascadeClassifier& cascade, CascadeClassifier& nestedCascade, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
         double scale);
 void cut(string path, string img, cutpos cp, string towrite);
 string cleandir(string path);
+void averageFace(string towrite, Mat face);
 
 // global vars
 int face_top = 0;
 int face_bottom = 0;
-int face_center = 0;
+int face_center_y = 0;
+int face_center_x = 0;
+int face_width = 0;
 int face_cnt = 0;
 int eye_y = 0;
 int eye_cnt = 0;
@@ -66,29 +72,33 @@ int main(int argc, const char** argv) {
 
     if (!cascade.load(cascadeName) || !eyeCas.load(eyeCasName) || !noseCas.load(noseCasName) || !mouthCas.load(mouthCasName)) {
         cerr << "ERROR: Could not load classifier cascade" << endl;
-        return 0;
+        return 1;
     }
 
     DIR *dir, *dird;
     struct dirent *ent, *cutd;
-    if ((dir = opendir(input_img_dir)) != NULL) {
+    if ((dir = opendir(input_img_dir)) != NULL && (dird = opendir(input_img_dir)) != NULL) {
 
         // Get all size info from whole set
         clock_t begin1 = clock();
+        cout << "Start calculating image" << endl;
         while ((ent = readdir(dir)) != NULL) {
             if (strcmp(ent->d_name, ".") && strcmp(ent->d_name, "..") && strstr(ent->d_name, "tiff")) {
-                //                printf("Calculating image: %s\n", ent->d_name);
-                detectAndDraw(input_img_dir, ent->d_name, cascade, eyeCas, noseCas, mouthCas, scale);
+                detectAndStat(input_img_dir, ent->d_name, cascade, eyeCas, noseCas, mouthCas, scale);
+                cout << ".";
             }
         }
         clock_t end1 = clock();
         double elapsed_secs1 = double(end1 - begin1) / CLOCKS_PER_SEC;
         cout << "time:" << elapsed_secs1 << endl;
+        closedir(dir);
 
         // Calculate proper cut boundary by face, nose and eye sub component size
         face_top /= face_cnt;
         face_bottom /= face_cnt;
-        face_center /= face_cnt;
+        face_center_y /= face_cnt;
+        face_center_x /= face_cnt;
+        face_width /= face_cnt;
 
         eye_y /= eye_cnt;
         eye_height /= eye_cnt;
@@ -96,26 +106,36 @@ int main(int argc, const char** argv) {
         nose_y /= nose_cnt;
         nose_height /= nose_cnt;
 
-        // FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
-
-        string towrite = cleandir(cutpos_str[cp]);
-        if ((dird = opendir(input_img_dir)) != NULL) {
+        if (traverseAll) {
+            for (unsigned int i = 0; i < cutpos_str; i++) {
+                string towrite = cleandir(cutpos_str[i]);
+                cout << "Start cutting image" << endl;
+                // Cut by computed boundary
+                while ((cutd = readdir(dird)) != NULL) {
+                    if (strcmp(cutd->d_name, ".") && strcmp(cutd->d_name, "..") && strstr(cutd->d_name, "tiff")) {
+                        cut(input_img_dir, cutd->d_name, cp, towrite);
+                        cout << ".";
+                    }
+                }
+            }
+        } else {
+            string towrite = cleandir(cutpos_str[cp]);
+            cout << "Start cutting image" << endl;
             // Cut by computed boundary
             while ((cutd = readdir(dird)) != NULL) {
                 if (strcmp(cutd->d_name, ".") && strcmp(cutd->d_name, "..") && strstr(cutd->d_name, "tiff")) {
-                    printf("Cutting image: %s\n", cutd->d_name);
                     cut(input_img_dir, cutd->d_name, cp, towrite);
+                    cout << ".";
                 }
             }
-
-            return 0;
         }
-        closedir(dir);
+        closedir(dird);
+
     } else {
         perror("");
         return EXIT_FAILURE;
     }
-
+    return 0;
 }
 
 string cleandir(string path) {
@@ -129,7 +149,7 @@ string cleandir(string path) {
     return (to_write_dir + path + "/").c_str();
 }
 
-void detectAndDraw(string path, string imgname, CascadeClassifier& cascade, CascadeClassifier& eyeCas, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
+void detectAndStat(string path, string imgname, CascadeClassifier& cascade, CascadeClassifier& eyeCas, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
         double scale) {
     int i = 0;
     double t = 0;
@@ -170,7 +190,9 @@ void detectAndDraw(string path, string imgname, CascadeClassifier& cascade, Casc
 
         face_top += cvRound(r->y * scale);
         face_bottom += cvRound((r->y + r->height) * scale);
-        face_center += center.y;
+        face_center_y += center.y;
+        face_center_x += center.x;
+        face_width += r->width;
         face_cnt += 1;
 
         // Tag face using rectangle
@@ -237,31 +259,64 @@ void detectAndDraw(string path, string imgname, CascadeClassifier& cascade, Casc
     }
 }
 
+void averageFace(string towrite, Mat face) {
+    double mid = cvCeil(face.cols / 2);
+    Mat gray;
+    cvtColor(face, gray, CV_BGR2GRAY);
+
+    if (isHalf) {
+        for (int row = 0; row < gray.rows; row++) {
+            for (int col = mid; col < 2 * mid; col++) {
+                gray.at<uchar>(row, col) = (gray.at<uchar>(row, col) + gray.at<uchar>(row, gray.cols - 1 - col)) / 2;
+            }
+        }
+
+        Rect average(mid, 0, mid, gray.rows);
+        //    imshow("test", gray(average));
+        //    waitKey(0);
+        imwrite(towrite, gray(average));
+    } else {
+        imwrite(towrite, face);
+    }
+
+}
+
 void cut(string path, string imgname, cutpos cp, string towrite) {
     Mat img = imread(path + imgname, CV_LOAD_IMAGE_COLOR);
     Mat output = img;
 
+    int face_left = face_center_x - face_width / 2;
+
     switch (cp) {
-        case FACE:
+        case FACE_BG:
         {
-            Rect face_rec(0, face_top, output.cols, face_bottom - face_top);
+            Rect face_rec(0, 0, output.rows, output.cols);
             Mat face = output(face_rec);
             //            imshow("output", face);
             //            waitKey(0);
-            imwrite(towrite + imgname, face);
+            averageFace(towrite + imgname, face);
+            break;
+        }
+        case FACE:
+        {
+            Rect face_rec(face_left, face_top, face_width, face_bottom - face_top);
+            Mat face = output(face_rec);
+            //            imshow("output", face);
+            //            waitKey(0);
+            averageFace(towrite + imgname, face);
             break;
         }
         case RM_NOSE:
         {
-            Rect up_rect(0, face_top, output.cols, face_center - face_top);
+            Rect up_rect(face_left, face_top, face_width, face_center_y - face_top);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
+            Rect down_rect(face_left, nose_y + nose_height / 2, face_width, face_bottom - nose_y - nose_height / 2);
             Mat down_image = output(down_rect);
 
             Mat combine;
             vconcat(up_image, down_image, combine);
-            imwrite(towrite + imgname, combine);
+            averageFace(towrite + imgname, combine);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -269,15 +324,15 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
+            Rect up_rect(face_left, face_top, face_width, eye_y - eye_height / 2 - face_top);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, eye_y + eye_height / 2, output.cols, face_bottom - eye_y - eye_height / 2);
+            Rect down_rect(face_left, eye_y + eye_height / 2, face_width, face_bottom - eye_y - eye_height / 2);
             Mat down_image = output(down_rect);
 
             Mat combine;
             vconcat(up_image, down_image, combine);
-            imwrite(towrite + imgname, combine);
+            averageFace(towrite + imgname, combine);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -285,10 +340,10 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_MOUTH:
         {
-            Rect mouth_rec(0, face_top, output.cols, nose_y + nose_height / 2 - face_top);
+            Rect mouth_rec(face_left, face_top, face_width, nose_y + nose_height / 2 - face_top);
             Mat mouth = output(mouth_rec);
 
-            imwrite(towrite + imgname, mouth);
+            averageFace(towrite + imgname, mouth);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -296,15 +351,15 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_NOSE_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
+            Rect up_rect(face_left, face_top, face_width, eye_y - eye_height / 2 - face_top);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
+            Rect down_rect(face_left, nose_y + nose_height / 2, face_width, face_bottom - nose_y - nose_height / 2);
             Mat down_image = output(down_rect);
 
             Mat combine;
             vconcat(up_image, down_image, combine);
-            imwrite(towrite + imgname, combine);
+            averageFace(towrite + imgname, combine);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -312,10 +367,10 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_NOSE_MOUTH:
         {
-            Rect eyes_rec(0, face_top, output.cols, face_center - face_top);
+            Rect eyes_rec(face_left, face_top, face_width, face_center_y - face_top);
             Mat eyes = output(eyes_rec);
 
-            imwrite(towrite + imgname, eyes);
+            averageFace(towrite + imgname, eyes);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -323,10 +378,10 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_EYES_MOUTH:
         {
-            Rect nose_rec(0, face_center, output.cols, nose_y + nose_height / 2 - face_center);
+            Rect nose_rec(face_left, face_center_y, face_width, nose_y + nose_height / 2 - face_center_y);
             Mat nose = output(nose_rec);
 
-            imwrite(towrite + imgname, nose);
+            averageFace(towrite + imgname, nose);
 
             //            imshow("combine", combine);
             //            waitKey(0);
@@ -337,11 +392,14 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
             break;
     }
 
-    line(img, Point(0, face_top), Point(img.cols, face_top), colors[1]);
-    line(img, Point(0, eye_y), Point(img.cols, eye_y), colors[2]);
-    line(img, Point(0, nose_y), Point(img.cols, nose_y), colors[3]);
-    line(img, Point(0, face_center), Point(img.cols, face_center), colors[4]);
-    line(img, Point(0, face_bottom), Point(img.cols, face_bottom), colors[5]);
+    // For Cutting Visualization, you will see more about the cutting line when uncomment the following codes
+    //    line(img, Point(0, face_top), Point(img.cols, face_top), colors[1]);
+    //    line(img, Point(0, eye_y), Point(img.cols, eye_y), colors[2]);
+    //    line(img, Point(0, nose_y), Point(img.cols, nose_y), colors[3]);
+    //    line(img, Point(0, face_center), Point(img.cols, face_center), colors[4]);
+    //    line(img, Point(0, face_bottom), Point(img.cols, face_bottom), colors[5]);
     //    cv::imshow("result", img);
     //    waitKey(0);
+
+
 }
