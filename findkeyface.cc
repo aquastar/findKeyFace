@@ -38,6 +38,8 @@ enum cutpos {
 };
 string cutpos_str[] = {"face", "rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
 
+// cutting control
+cutpos cp = RM_NOSE_EYES;
 
 void detectAndDraw(string path, string img,
         CascadeClassifier& cascade, CascadeClassifier& nestedCascade, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
@@ -95,7 +97,7 @@ int main(int argc, const char** argv) {
         nose_height /= nose_cnt;
 
         // FACE, RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
-        cutpos cp = RM_NOSE_EYES;
+
         string towrite = cleandir(cutpos_str[cp]);
         if ((dird = opendir(input_img_dir)) != NULL) {
             // Cut by computed boundary
