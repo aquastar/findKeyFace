@@ -45,7 +45,7 @@ string cutpos_str[] = {"rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nos
 
 // cutting parameters control
 cutpos cp = RM_NOSE;
-bool isHalf = false;
+bool isHalf = true;
 bool traverseAll = false;
 
 void detectAndStat(string path, string img,
@@ -179,7 +179,7 @@ int main(int argc, const char** argv) {
             if (traverseAll) {
                 for (unsigned int i = 0; i < sizeof (cutpos_str) / sizeof (cutpos_str[0]); i++) {
                     string towrite = cleandir(cutpos_str[i]);
-                    cout << "Start cutting image..." << endl;
+                    cout << "Start cutting image..." << cutpos_str[i] << endl;
                     // Cut by computed boundary
                     while ((ent_other_cut = readdir(dir_other_cut)) != NULL) {
                         if (strcmp(ent_face_cut->d_name, ".") && strcmp(ent_other_cut->d_name, "..") && strstr(ent_other_cut->d_name, IMG_SUFFIX)) {
@@ -412,7 +412,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
 
         case RM_NOSE:
         {
-            Rect up_rect(0, 0, output.cols, face_center_y - face_top);
+            Rect up_rect(0, 0, output.cols, eye_y + eye_height/2);
             Mat up_image = output(up_rect);
 
             Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
