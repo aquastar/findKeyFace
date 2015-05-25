@@ -13,8 +13,8 @@ using namespace std;
 using namespace cv;
 
 // Output base directory and input image folder
-const string to_write_dir = "/home/danny/Desktop/";
-const char* input_img_dir = "/home/danny/Desktop/ck_img/";
+const string to_write_dir = "/home/danny/Downloads/";
+const char* input_img_dir = "/home/danny/Downloads/verdata/";
 
 #define IMG_SUFFIX "png"
 
@@ -39,14 +39,14 @@ const static Scalar colors[] = {
 // Cutting style
 
 enum cutpos {
-    RM_NOSE, RM_EYES, RM_MOUTH, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES_MOUTH
+    FACE, RM_NOSE, RM_NOSE_EYES, RM_NOSE_MOUTH, RM_EYES, RM_MOUTH, RM_EYES_MOUTH
 };
-string cutpos_str[] = {"rm_nose", "rm_eyes", "rm_mouth", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes_mouth"};
+string cutpos_str[] = {"pure_face", "rm_nose", "rm_nose_eyes", "rm_nose_mouth", "rm_eyes", "rm_mouth", "rm_eyes_mouth"};
 
 // cutting parameters control
-cutpos cp = RM_NOSE;
+cutpos cp = RM_EYES_MOUTH;
 bool isHalf = true;
-bool traverseAll = false;
+bool traverseAll = true;
 
 void detectAndStat(string path, string img,
         CascadeClassifier& cascade, CascadeClassifier& eyeCas, CascadeClassifier& noseCas, CascadeClassifier& mouthCas,
@@ -116,7 +116,9 @@ int main(int argc, const char** argv) {
         clock_t begin1 = clock();
         cout << "Start stat face..." << endl;
         while ((ent_face_stat = readdir(dir_face_stat)) != NULL) {
-            if (strcmp(ent_face_stat->d_name, ".") && strcmp(ent_face_stat->d_name, "..") && strstr(ent_face_stat->d_name, IMG_SUFFIX)) {
+            if (strcmp(ent_face_stat->d_name, ".") && strcmp(ent_face_stat->d_name, "..")
+                    //                    && strstr(ent_face_stat->d_name, IMG_SUFFIX)
+                    ) {
                 statAndNormal(input_img_dir, ent_face_stat->d_name, cascade, scale);
             }
         }
@@ -137,7 +139,9 @@ int main(int argc, const char** argv) {
         string face_path = cleandir("face");
         cout << "Start normalizing face..." << endl;
         while ((ent_face_cut = readdir(dir_face_cut)) != NULL) {
-            if (strcmp(ent_face_cut->d_name, ".") && strcmp(ent_face_cut->d_name, "..") && strstr(ent_face_cut->d_name, IMG_SUFFIX)) {
+            if (strcmp(ent_face_cut->d_name, ".") && strcmp(ent_face_cut->d_name, "..")
+                    //                    && strstr(ent_face_cut->d_name, IMG_SUFFIX)
+                    ) {
                 normalizeFaceCut(input_img_dir, ent_face_cut->d_name, face_path);
             }
         }
@@ -155,7 +159,9 @@ int main(int argc, const char** argv) {
 
             cout << "Start calculating other positions..." << endl;
             while ((ent_face_stat = readdir(dir_other_stat)) != NULL) {
-                if (strcmp(ent_face_stat->d_name, ".") && strcmp(ent_face_stat->d_name, "..") && strstr(ent_face_stat->d_name, IMG_SUFFIX)) {
+                if (strcmp(ent_face_stat->d_name, ".") && strcmp(ent_face_stat->d_name, "..")
+                        //                        && strstr(ent_face_stat->d_name, IMG_SUFFIX)
+                        ) {
                     detectAndStat(face_path, ent_face_stat->d_name, cascade, eyeCas, noseCas, mouthCas, scale);
                 }
             }
@@ -169,7 +175,7 @@ int main(int argc, const char** argv) {
             face_center_x /= face_cnt;
             face_width /= face_cnt;
             face_height /= face_cnt;
-            
+
             eye_y /= eye_cnt;
             eye_height /= eye_cnt;
 
@@ -177,13 +183,19 @@ int main(int argc, const char** argv) {
             nose_height /= nose_cnt;
 
             if (traverseAll) {
-                for (unsigned int i = 0; i < sizeof (cutpos_str) / sizeof (cutpos_str[0]); i++) {
+                for (int i = 0; i < sizeof (cutpos_str) / sizeof (cutpos_str[0]); i++) {
+                    closedir(dir_other_cut);
+                    dir_other_cut = opendir(face_path.c_str());
+
                     string towrite = cleandir(cutpos_str[i]);
+                    cutpos icp = (cutpos) (FACE + i);
                     cout << "Start cutting image..." << cutpos_str[i] << endl;
                     // Cut by computed boundary
                     while ((ent_other_cut = readdir(dir_other_cut)) != NULL) {
-                        if (strcmp(ent_face_cut->d_name, ".") && strcmp(ent_other_cut->d_name, "..") && strstr(ent_other_cut->d_name, IMG_SUFFIX)) {
-                            cut(face_path, ent_other_cut->d_name, cp, towrite);
+                        if (strcmp(ent_other_cut->d_name, ".") && strcmp(ent_other_cut->d_name, "..")
+                                //                                && strstr(ent_other_cut->d_name, IMG_SUFFIX)
+                                ) {
+                            cut(face_path, ent_other_cut->d_name, icp, towrite);
                         }
                     }
                 }
@@ -192,7 +204,9 @@ int main(int argc, const char** argv) {
                 cout << "Start cutting image..." << endl;
                 // Cut by computed boundary
                 while ((ent_other_cut = readdir(dir_other_cut)) != NULL) {
-                    if (strcmp(ent_other_cut->d_name, ".") && strcmp(ent_other_cut->d_name, "..") && strstr(ent_other_cut->d_name, IMG_SUFFIX)) {
+                    if (strcmp(ent_other_cut->d_name, ".") && strcmp(ent_other_cut->d_name, "..")
+                            //                            && strstr(ent_other_cut->d_name, IMG_SUFFIX)
+                            ) {
                         cut(face_path, ent_other_cut->d_name, cp, towrite);
                     }
                 }
@@ -397,9 +411,12 @@ void averageFace(string towrite, Mat face) {
         Rect average(mid, 0, mid, gray.rows);
         //    imshow("test", gray(average));
         //    waitKey(0);
-        imwrite(towrite, gray(average));
+        gray = gray(average);
+        equalizeHist(gray, gray);
+        imwrite(towrite, gray);
     } else {
-        imwrite(towrite, face);
+        equalizeHist(gray, gray);
+        imwrite(towrite, gray);
     }
 
 }
@@ -409,10 +426,18 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
     Mat output = img;
 
     switch (cp) {
+        case FACE:
+        {
 
+            averageFace(towrite + imgname, output);
+
+            //            imshow("combine", combine);
+            //            waitKey(0);
+            break;
+        }
         case RM_NOSE:
         {
-            Rect up_rect(0, 0, output.cols, eye_y + eye_height/2);
+            Rect up_rect(0, 0, output.cols, eye_y + eye_height / 2);
             Mat up_image = output(up_rect);
 
             Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
@@ -428,10 +453,10 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
+            Rect up_rect(0, 0, output.cols, eye_y - eye_height);
             Mat up_image = output(up_rect);
 
-            Rect down_rect(0, eye_y + eye_height / 2, output.cols, face_bottom - eye_y - eye_height / 2);
+            Rect down_rect(0, eye_y + eye_height, output.cols, output.rows - eye_y - eye_height);
             Mat down_image = output(down_rect);
 
             Mat combine;
@@ -455,7 +480,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_NOSE_EYES:
         {
-            Rect up_rect(0, face_top, output.cols, eye_y - eye_height / 2 - face_top);
+            Rect up_rect(0, 0, output.cols, eye_y - eye_height);
             Mat up_image = output(up_rect);
 
             Rect down_rect(0, nose_y + nose_height / 2, output.cols, face_bottom - nose_y - nose_height / 2);
@@ -471,7 +496,7 @@ void cut(string path, string imgname, cutpos cp, string towrite) {
         }
         case RM_NOSE_MOUTH:
         {
-            Rect eyes_rec(0, face_top, output.cols, face_center_y - face_top);
+            Rect eyes_rec(0, 0, output.cols, face_center_y);
             Mat eyes = output(eyes_rec);
             averageFace(towrite + imgname, eyes);
             //            imshow("combine", combine);
